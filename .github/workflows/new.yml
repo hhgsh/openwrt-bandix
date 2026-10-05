@@ -19,7 +19,7 @@ jobs:
     steps:
       # 核心修改点1：将你的源码 checkout 到一个叫 my-plugin 的独立文件夹中，防止被覆盖
       - name: Checkout Source Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: my-plugin
 
