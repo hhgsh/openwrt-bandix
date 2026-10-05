@@ -1,4 +1,4 @@
-name: Build APK 
+name: Build APK
 
 on:
   workflow_dispatch:
@@ -74,5 +74,4 @@ jobs:
           prerelease: false
           files: release_files/*.apk
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
