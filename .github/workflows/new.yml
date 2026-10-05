@@ -1,0 +1,78 @@
+name: Build APK 
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+    paths:
+      - '**/Makefile'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup OpenWrt SDK & Build
+        run: |
+          # 1. 下载 OpenWrt 25.12 SDK (x86_64 架构)
+          SDK_URL="https://downloads.openwrt.org/releases/25.12.0/targets/x86/64/openwrt-sdk-25.12.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.xz"
+          
+          wget -q $SDK_URL -O sdk.tar.xz
+          tar -xf sdk.tar.xz --strip-components=1
+          rm sdk.tar.xz
+
+          # 2. 复制插件源码到 SDK
+          mkdir -p package/custom-app
+          cp -r $GITHUB_WORKSPACE/* package/custom-app/ 2>/dev/null || true
+
+          # 3. 更新并安装 feed 依赖
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+          # 4. 仅编译自定义包（避免编译整个目录）
+          make defconfig
+          make package/custom-app/compile V=s
+
+      - name: Organize Target APK Files Only
+        run: |
+          mkdir -p release_files
+          # 精准筛选：仅匹配本项目包（如 bandix / luci-app-bandix）
+          find bin/packages/ -type f \( -name "*bandix*.apk" -o -name "*luci*.apk" \) -exec cp {} release_files/ \;
+          
+          echo "=== 过滤后的待上传附件清单 ==="
+          ls -lh release_files/
+
+      - name: Generate Release Tag
+        id: tag
+        run: |
+          if [ -z "${{ github.ref_name }}" ] || [ "${{ github.ref_type }}" != "tag" ]; then
+            TAG_NAME="v25.12-$(date +'%Y%m%d-%H%M')"
+          else
+            TAG_NAME="${{ github.ref_name }}"
+          fi
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          name: "OpenWrt 25.12 Packages (${{ steps.tag.outputs.tag_name }})"
+          body: |
+            ### 编译说明
+            - 适用系统：OpenWrt 25.12 (包管理器：APK)
+            - 架构：x86_64
+            - 包含文件：核心程序包及 LuCI 界面包 (.apk)
+          draft: false
+          prerelease: false
+          files: release_files/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
