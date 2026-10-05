@@ -22,28 +22,28 @@ jobs:
 
       - name: Setup OpenWrt SDK & Build
         run: |
-          # 安装 zstd 解压工具
+          # 1. 安装 zstd 解压依赖
           sudo apt-get update && sudo apt-get install -y zstd
 
-          # 1. 下载 OpenWrt SNAPSHOT (x86_64 架构) SDK
+          # 2. 下载 OpenWrt SNAPSHOT (x86_64 架构) 最新 SDK
           SDK_URL="https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-14.4.0_musl.Linux-x86_64.tar.zst"
           
           wget -q $SDK_URL -O sdk.tar.zst
           tar -I zstd -xf sdk.tar.zst --strip-components=1
           rm sdk.tar.zst
 
-          # 2. 复制插件源码到 SDK
+          # 3. 复制插件源码到 SDK
           mkdir -p package/custom-app
           cp -r $GITHUB_WORKSPACE/* package/custom-app/ 2>/dev/null || true
 
-          # 3. 更新并安装 feed 依赖
+          # 4. 更新并安装 feed 依赖
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-          # 4. 仅编译自定义包（避免编译整个目录）
+          # 5. 编译插件
           make defconfig
           make package/custom-app/compile V=s
-
+          
       - name: Organize Target APK Files Only
         run: |
           mkdir -p release_files
