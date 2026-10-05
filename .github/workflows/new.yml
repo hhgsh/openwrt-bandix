@@ -23,7 +23,7 @@ jobs:
       - name: Setup OpenWrt SDK & Build
         run: |
           # 1. 下载 OpenWrt 25.12 SDK (x86_64 架构)
-          SDK_URL="https://downloads.openwrt.org/releases/25.12.0/targets/x86/64/openwrt-sdk-25.12.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.xz"
+          SDK_URL="https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.xz"
           
           wget -q $SDK_URL -O sdk.tar.xz
           tar -xf sdk.tar.xz --strip-components=1
