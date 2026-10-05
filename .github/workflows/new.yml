@@ -34,16 +34,25 @@ jobs:
           tar -I zstd -xf sdk.tar.zst --strip-components=1
           rm sdk.tar.zst
 
-          # 3. 核心修改点2：将之前独立下载的插件源码，安全移动到 SDK 的 package 目录内
+          # 3. 将你的插件源码移动到 SDK 的 package 目录内
           mv my-plugin package/custom-app
 
           # 4. 更新并安装 feed 依赖
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-          # 5. 编译插件
+          # 5. 动态查找并编译所有合法的插件
           make defconfig
-          make package/custom-app/compile V=s
+          
+          echo "=== 开始动态编译插件 ==="
+          find package/custom-app -name "Makefile" -type f | while read -r makefile_path; do
+            # 校验是否为标准的 OpenWrt 插件 Makefile
+            if grep -q "include \$(TOPDIR)/rules.mk" "$makefile_path"; then
+              pkg_dir=$(dirname "$makefile_path")
+              echo "=== 发现插件目录: $pkg_dir，正在执行编译 ==="
+              make "$pkg_dir/compile" V=s
+            fi
+          done
 
       - name: Organize Target APK Files Only
         run: |
