@@ -35,11 +35,11 @@ jobs:
           # 3. 复制插件源码到 SDK
           mkdir -p package/custom-app
           cp -r $GITHUB_WORKSPACE/* package/custom-app/ 2>/dev/null || true
-
+      
           # 4. 更新并安装 feed 依赖
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-
+      
           # 5. 编译插件
           make defconfig
           make package/custom-app/compile V=s
