@@ -17,37 +17,38 @@ jobs:
       contents: write
 
     steps:
+      # 核心修改点1：将你的源码 checkout 到一个叫 my-plugin 的独立文件夹中，防止被覆盖
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        with:
+          path: my-plugin
 
       - name: Setup OpenWrt SDK & Build
         run: |
-          # 1. 安装 zstd 解压依赖
+          # 1. 安装解压依赖
           sudo apt-get update && sudo apt-get install -y zstd
 
-          # 2. 下载 OpenWrt SNAPSHOT (x86_64 架构) 最新 SDK
+          # 2. 下载并解压 SDK 到当前根目录
           SDK_URL="https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-14.4.0_musl.Linux-x86_64.tar.zst"
-          
           wget -q $SDK_URL -O sdk.tar.zst
           tar -I zstd -xf sdk.tar.zst --strip-components=1
           rm sdk.tar.zst
 
-          # 3. 复制插件源码到 SDK
-          mkdir -p package/custom-app
-          cp -r $GITHUB_WORKSPACE/* package/custom-app/ 2>/dev/null || true
-      
+          # 3. 核心修改点2：将之前独立下载的插件源码，安全移动到 SDK 的 package 目录内
+          mv my-plugin package/custom-app
+
           # 4. 更新并安装 feed 依赖
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-      
+
           # 5. 编译插件
           make defconfig
           make package/custom-app/compile V=s
-          
+
       - name: Organize Target APK Files Only
         run: |
           mkdir -p release_files
-          # 精准筛选：仅匹配本项目包（如 bandix / luci-app-bandix）
+          # 提取编译生成的 apk
           find bin/packages/ -type f \( -name "*bandix*.apk" -o -name "*luci*.apk" \) -exec cp {} release_files/ \;
           
           echo "=== 过滤后的待上传附件清单 ==="
@@ -67,10 +68,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag_name }}
-          name: "OpenWrt 25.12 Packages (${{ steps.tag.outputs.tag_name }})"
+          name: "OpenWrt Packages (${{ steps.tag.outputs.tag_name }})"
           body: |
             ### 编译说明
-            - 适用系统：OpenWrt 25.12 (包管理器：APK)
+            - 适用系统：OpenWrt SNAPSHOT (包管理器：APK)
             - 架构：x86_64
             - 包含文件：核心程序包及 LuCI 界面包 (.apk)
           draft: false
